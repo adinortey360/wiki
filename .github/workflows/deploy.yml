@@ -1,4 +1,4 @@
-name: Deploy Load Balancer Container to Server
+name: Deploy Wiki Container to Server
 
 on:
   push:
@@ -26,36 +26,18 @@ jobs:
       run: |
         ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-    # Step 4: Build the Docker image
-    - name: Build Docker Image
+    # Step 4: Copy the Docker Compose file to the server
+    - name: Copy Docker Compose to server
       run: |
-        docker build -t wiki-image .
+        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} ../../docker/docker-compose.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/docker-compose.yml
 
-    # Step 5: Save the Docker image as a tar file for transfer
-    - name: Save Docker image to file
-      run: |
-        docker save -o wiki-image.tar wiki-image
-
-    # Step 6: Copy the Docker image to the remote server
-    - name: Copy Docker image to server
-      run: |
-        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} wiki-image.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/wiki-image.tar
-
-    # Step 7: Load the Docker image on the remote server and run it
-    - name: Deploy Docker image on the server
+    # Step 5: Deploy using Docker Compose on the remote server
+    - name: Deploy using Docker Compose
       run: |
         ssh -t -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-          # Remove the existing Docker image if it exists
-          if sudo docker images | grep -q "wiki-image"; then
-            sudo docker rmi -f wiki-image:latest || true
-          fi
-          # Load the new Docker image
-          sudo docker load -i /tmp/wiki-image.tar
-          # Stop and remove the existing container if it exists
-          sudo docker stop wiki-container || true
-          sudo docker rm wiki-container || true
-          # Run the new container
-          sudo docker run -d --name wiki-container -p 8080:8080 wiki-image
-          # Clean up by removing the transferred image tar file
-          rm /tmp/wiki-image.tar
+          cd /tmp
+          # Stop and remove any existing containers
+          sudo docker-compose down || true
+          # Run the containers using Docker Compose
+          sudo docker-compose up -d
         EOF
