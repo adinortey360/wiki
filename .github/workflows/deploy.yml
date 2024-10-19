@@ -29,7 +29,8 @@ jobs:
     # Step 4: Copy the Docker Compose file to the server
     - name: Copy Docker Compose to server
       run: |
-        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} ../../docker/docker-compose.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/docker-compose.yml
+        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} ./docker/docker-compose.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/docker-compose.yml
+
 
     # Step 5: Deploy using Docker Compose on the remote server
     - name: Deploy using Docker Compose
